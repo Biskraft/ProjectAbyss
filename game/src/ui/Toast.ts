@@ -51,4 +51,12 @@ export class ToastManager {
       }
     }
   }
+
+  /** Remove all active toasts (call on scene exit) */
+  clear(): void {
+    for (const toast of this.toasts) {
+      if (toast.container.parent) toast.container.parent.removeChild(toast.container);
+    }
+    this.toasts = [];
+  }
 }

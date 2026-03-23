@@ -104,9 +104,9 @@ export class HitManager {
           step.hitstun,
         );
 
-        // Timer-based invincibility
+        // Brief invincibility matching hitstun duration
         target.invincible = true;
-        target.invincibleTimer = 500;
+        target.invincibleTimer = step.hitstun;
 
         const isKill = target.hp <= 0;
         if (isKill) {

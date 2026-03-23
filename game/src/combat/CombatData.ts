@@ -20,7 +20,7 @@ export interface ComboStep {
 export const COMBO_STEPS: ComboStep[] = [
   // 1타: Slash1 — light, quick feedback
   {
-    hitboxW: 29, hitboxH: 19,
+    hitboxW: 45, hitboxH: 19,
     activeFrames: 6, totalFrames: 12,
     hitstopFrames: 3, hitstun: 200,
     knockbackX: 120, knockbackY: -30,
@@ -28,7 +28,7 @@ export const COMBO_STEPS: ComboStep[] = [
   },
   // 2타: Slash2 — medium, building momentum
   {
-    hitboxW: 34, hitboxH: 19,
+    hitboxW: 50, hitboxH: 19,
     activeFrames: 6, totalFrames: 12,
     hitstopFrames: 4, hitstun: 250,
     knockbackX: 150, knockbackY: -40,
@@ -36,7 +36,7 @@ export const COMBO_STEPS: ComboStep[] = [
   },
   // 3타: Slash3 — heavy finisher, big payoff
   {
-    hitboxW: 38, hitboxH: 24,
+    hitboxW: 54, hitboxH: 24,
     activeFrames: 7, totalFrames: 14,
     hitstopFrames: 6, hitstun: 400,
     knockbackX: 240, knockbackY: -80,

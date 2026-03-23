@@ -159,8 +159,10 @@ export class WorldScene extends Scene {
 
     // Camera
     this.game.camera.setBounds(0, 0, ROOM_W * TILE_SIZE, ROOM_H * TILE_SIZE);
-    this.game.camera.x = this.player.x;
-    this.game.camera.y = this.player.y;
+    this.game.camera.snap(
+      this.player.x + this.player.width / 2,
+      this.player.y + this.player.height / 2,
+    );
   }
 
   private updatePlayerAtk(): void {
@@ -195,8 +197,10 @@ export class WorldScene extends Scene {
 
     this.drawDoorMarkers(cell);
 
-    this.game.camera.x = this.player.x;
-    this.game.camera.y = this.player.y;
+    this.game.camera.snap(
+      this.player.x + this.player.width / 2,
+      this.player.y + this.player.height / 2,
+    );
     cell.visited = true;
     this.drawMiniMap();
   }
@@ -246,8 +250,7 @@ export class WorldScene extends Scene {
     this.player.y = spawn.y;
     this.player.respawn();
     this.player.savePrevPosition();
-    this.game.camera.x = this.player.x;
-    this.game.camera.y = this.player.y;
+    this.game.camera.snap(this.player.x, this.player.y);
   }
 
   private drawDoorMarkers(cell: RoomCell): void {
@@ -366,6 +369,11 @@ export class WorldScene extends Scene {
     if (this.miniMapContainer) this.miniMapContainer.visible = true;
     if (this.hud) this.hud.container.visible = true;
     this.updatePlayerAtk();
+    // Snap camera to player position on re-enter
+    this.game.camera.snap(
+      this.player.x + this.player.width / 2,
+      this.player.y + this.player.height / 2,
+    );
   }
 
   update(dt: number): void {
@@ -885,6 +893,7 @@ export class WorldScene extends Scene {
   }
 
   exit(): void {
+    this.toast.clear();
     if (this.miniMapContainer?.parent) this.miniMapContainer.parent.removeChild(this.miniMapContainer);
     if (this.hud?.container.parent) this.hud.container.parent.removeChild(this.hud.container);
     if (this.inventoryUI?.container.parent) this.inventoryUI.container.parent.removeChild(this.inventoryUI.container);

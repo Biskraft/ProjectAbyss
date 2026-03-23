@@ -11,7 +11,7 @@ export class Camera {
   deadZoneY = 24;
 
   // Look Ahead
-  lookAheadDistance = 64;
+  lookAheadDistance = 0;
   lookAheadLerp = 0.05;
   private currentLookAheadX = 0;
   private targetLookAheadX = 0;
@@ -45,6 +45,37 @@ export class Camera {
 
   clearBounds(): void {
     this.bounds = null;
+  }
+
+  /** Instantly set look-ahead to its final value (no lerp) */
+  setLookAhead(direction: number): void {
+    this.facingDirection = direction;
+    this.targetLookAheadX = direction * this.lookAheadDistance;
+    this.currentLookAheadX = this.targetLookAheadX;
+  }
+
+  /** Instantly snap camera to a position (no lerp, no look-ahead offset) */
+  snap(x: number, y: number): void {
+    this.x = x;
+    this.y = y;
+    this.currentLookAheadX = 0;
+    this.targetLookAheadX = 0;
+    this.facingDirection = 0;
+    this.shakeIntensity = 0;
+    this.shakeOffsetX = 0;
+    this.shakeOffsetY = 0;
+
+    // Apply bounds immediately after snap
+    if (this.bounds) {
+      const halfW = this.viewportW / 2;
+      const halfH = this.viewportH / 2;
+      const minX = this.bounds.left + halfW;
+      const maxX = this.bounds.right - halfW;
+      const minY = this.bounds.top + halfH;
+      const maxY = this.bounds.bottom - halfH;
+      this.x = minX >= maxX ? (this.bounds.left + this.bounds.right) / 2 : Math.max(minX, Math.min(maxX, this.x));
+      this.y = minY >= maxY ? (this.bounds.top + this.bounds.bottom) / 2 : Math.max(minY, Math.min(maxY, this.y));
+    }
   }
 
   shake(intensity: number): void {
@@ -88,7 +119,7 @@ export class Camera {
     this.targetLookAheadX = this.facingDirection * this.lookAheadDistance;
     this.currentLookAheadX += (this.targetLookAheadX - this.currentLookAheadX) * this.lookAheadLerp * dtFactor;
 
-    // Bounds clamping
+    // Bounds clamping (clamp renderX/renderY, not just camera.x/y)
     if (this.bounds) {
       const halfW = this.viewportW / 2;
       const halfH = this.viewportH / 2;
@@ -99,7 +130,15 @@ export class Camera {
 
       if (minX >= maxX) {
         this.x = (this.bounds.left + this.bounds.right) / 2;
+        this.currentLookAheadX = 0;
       } else {
+        // Clamp the effective render position (x + lookAhead)
+        const effectiveX = this.x + this.currentLookAheadX;
+        if (effectiveX < minX) {
+          this.currentLookAheadX = minX - this.x;
+        } else if (effectiveX > maxX) {
+          this.currentLookAheadX = maxX - this.x;
+        }
         this.x = Math.max(minX, Math.min(maxX, this.x));
       }
       if (minY >= maxY) {

@@ -140,8 +140,7 @@ export class ItemWorldScene extends Scene {
 
     // Camera
     this.game.camera.setBounds(0, 0, ROOM_W * TILE_SIZE, ROOM_H * TILE_SIZE);
-    this.game.camera.x = this.player.x;
-    this.game.camera.y = this.player.y;
+    this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
   }
 
   private generateDungeon(): void {
@@ -213,8 +212,7 @@ export class ItemWorldScene extends Scene {
       this.exitTrigger = null;
     }
 
-    this.game.camera.x = this.player.x;
-    this.game.camera.y = this.player.y;
+    this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
     cell.visited = true;
     this.drawMiniMap();
   }
@@ -630,6 +628,7 @@ export class ItemWorldScene extends Scene {
   }
 
   exit(): void {
+    this.toast.clear();
     this.hideEscapeConfirm();
     if (this.miniMapContainer?.parent) this.miniMapContainer.parent.removeChild(this.miniMapContainer);
     if (this.hud?.container.parent) this.hud.container.parent.removeChild(this.hud.container);
