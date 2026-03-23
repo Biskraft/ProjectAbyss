@@ -1,4 +1,8 @@
-import { Application, Container, WebGLRenderer } from 'pixi.js';
+// Pre-load PixiJS browser environment statically to avoid
+// dynamic-import hang in Vite production builds
+import 'pixi.js/browser';
+
+import { Container, Ticker, WebGLRenderer } from 'pixi.js';
 import { SceneManager } from '@core/SceneManager';
 import { InputManager } from '@core/InputManager';
 import { AssetLoader } from '@core/AssetLoader';
@@ -10,7 +14,11 @@ const FIXED_STEP = 1000 / 60; // 16.6667ms
 const MAX_ACCUMULATED = FIXED_STEP * 5;
 
 export class Game {
-  app!: Application;
+  app!: {
+    stage: Container;
+    canvas: HTMLCanvasElement;
+    ticker: Ticker;
+  };
   sceneManager!: SceneManager;
   input!: InputManager;
   assetLoader!: AssetLoader;
@@ -21,16 +29,29 @@ export class Game {
   private accumulated = 0;
 
   async init(): Promise<void> {
-    this.app = new Application();
-    await this.app.init({
+    // Create WebGLRenderer directly (bypasses autoDetectRenderer's
+    // dynamic import that hangs in Vite production builds)
+    const renderer = new WebGLRenderer();
+    await renderer.init({
       width: GAME_WIDTH,
       height: GAME_HEIGHT,
       backgroundColor: 0x1a1a2e,
       resolution: 1,
       autoDensity: false,
       antialias: false,
-      preference: 'webgl',
+      manageImports: false,
     });
+
+    const stage = new Container();
+    const ticker = new Ticker();
+    ticker.add(() => renderer.render(stage));
+    ticker.start();
+
+    this.app = {
+      stage,
+      canvas: renderer.canvas as HTMLCanvasElement,
+      ticker,
+    };
 
     const container = document.getElementById('game-container');
     if (!container) throw new Error('game-container not found');
