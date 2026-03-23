@@ -12,6 +12,7 @@ import { HitManager } from '@combat/HitManager';
 import { HUD } from '@ui/HUD';
 import { PIXEL_FONT } from '@ui/fonts';
 import { DamageNumberManager } from '@ui/DamageNumber';
+import { ToastManager } from '@ui/Toast';
 import { PRNG } from '@utils/PRNG';
 import { addItemExp, itemLevelUp, EXP_PER_LEVEL, type ItemInstance } from '@items/ItemInstance';
 import type { Inventory } from '@items/Inventory';
@@ -28,6 +29,8 @@ const FADE_DURATION = 200;
 const GRID_SIZE = 5; // 5x5 single dungeon
 const EXP_PER_ROOM = 120; // EXP per room clear (Disgaea-style generous)
 const BOSS_BONUS_EXP = 600; // bonus for boss kill
+const EXP_PER_KILL = 30;   // EXP per monster kill
+const EXP_ROOM_PASS = 60;  // EXP for passing through a room (~2 monsters worth)
 
 type TransitionState = 'none' | 'fade_out' | 'fade_in' | 'exit_fade';
 
@@ -41,6 +44,7 @@ export class ItemWorldScene extends Scene {
   private dmgNumbers!: DamageNumberManager;
   private hitSparks!: HitSparkManager;
   private screenFlash!: ScreenFlash;
+  private toast!: ToastManager;
 
   // Item being explored
   private item: ItemInstance;
@@ -127,6 +131,9 @@ export class ItemWorldScene extends Scene {
     // HUD
     this.hud = new HUD();
     this.game.app.stage.addChild(this.hud.container);
+
+    // Toast
+    this.toast = new ToastManager(this.game.app.stage);
 
     // Generate single dungeon
     this.generateDungeon();
@@ -359,7 +366,17 @@ export class ItemWorldScene extends Scene {
 
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const enemy = this.enemies[i];
+      const wasAlive = enemy.alive;
       enemy.update(dt);
+
+      // Monster killed — grant EXP
+      if (wasAlive && !enemy.alive) {
+        addItemExp(this.item, EXP_PER_KILL);
+        this.earnedExp += EXP_PER_KILL;
+        this.toast.show(`+${EXP_PER_KILL} EXP`, 0x88ccff);
+        this.updateHudText();
+      }
+
       if (enemy.shouldRemove) {
         if (enemy.container.parent) enemy.container.parent.removeChild(enemy.container);
         this.enemies.splice(i, 1);
@@ -434,6 +451,11 @@ export class ItemWorldScene extends Scene {
       // Boss kill → bonus level up
       if (isEndRoom) {
         itemLevelUp(this.item);
+        this.toast.show(`BOSS CLEAR! +${expGain} EXP`, 0xffaa00);
+        this.toast.show(`HP +${heal} recovered`, 0x44ff44);
+      } else {
+        this.toast.show(`Room Clear! +${expGain} EXP`, 0x88ccff);
+        this.toast.show(`HP +${heal} recovered`, 0x44ff44);
       }
 
       this.updateHudText();
@@ -452,11 +474,12 @@ export class ItemWorldScene extends Scene {
     // Door triggers
     this.checkDoorTriggers();
 
-    // HUD, damage numbers & Sakurai effects
+    // HUD, damage numbers, toast & Sakurai effects
     this.hud.updateHP(this.player.hp, this.player.maxHp);
     this.dmgNumbers.update(dt);
     this.hitSparks.update(dt);
     this.screenFlash.update(dt);
+    this.toast.update(dt);
 
     // Camera
     this.game.camera.target = {
@@ -558,6 +581,15 @@ export class ItemWorldScene extends Scene {
   }
 
   private startTransition(direction: 'left' | 'right' | 'up' | 'down', nextCol: number, nextRow: number): void {
+    // Grant pass-through EXP if room wasn't cleared (skipping enemies)
+    const cell = this.gridData.cells[this.currentRow][this.currentCol];
+    if (!cell.cleared) {
+      addItemExp(this.item, EXP_ROOM_PASS);
+      this.earnedExp += EXP_ROOM_PASS;
+      this.toast.show(`Room passed +${EXP_ROOM_PASS} EXP`, 0xaaaaaa);
+      this.updateHudText();
+    }
+
     this.transitionState = 'fade_out';
     this.transitionTimer = FADE_DURATION;
     this.pendingDirection = direction;
