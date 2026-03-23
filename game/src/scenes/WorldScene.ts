@@ -14,7 +14,7 @@ import { HitManager } from '@combat/HitManager';
 import { HUD } from '@ui/HUD';
 import { InventoryUI } from '@ui/InventoryUI';
 import { Inventory } from '@items/Inventory';
-import { ItemDropEntity, rollDrop } from '@items/ItemDrop';
+import { ItemDropEntity, rollDrop, rollGoldenDrop } from '@items/ItemDrop';
 import { SWORD_DEFS } from '@data/weapons';
 import { createItem } from '@items/ItemInstance';
 import type { ItemInstance } from '@items/ItemInstance';
@@ -424,9 +424,12 @@ export class WorldScene extends Scene {
       const wasAlive = enemy.alive;
       enemy.update(dt);
 
-      // Enemy just died — roll drop (skip for GoldenMonster, they spawn portals)
-      if (wasAlive && !enemy.alive && !(enemy instanceof GoldenMonster)) {
-        const drop = rollDrop(this.dropRng);
+      // Enemy just died — roll drop
+      if (wasAlive && !enemy.alive) {
+        const isGolden = enemy instanceof GoldenMonster;
+        const drop = isGolden
+          ? rollGoldenDrop(this.dropRng)    // guaranteed rare+ drop
+          : rollDrop(this.dropRng);         // normal drop chance
         if (drop) {
           const dropEntity = new ItemDropEntity(
             enemy.x + enemy.width / 2,

@@ -34,6 +34,29 @@ export function rollDrop(rng: PRNG): ItemInstance | null {
   return createItem(def, rarity);
 }
 
+const GOLDEN_RARITY_WEIGHTS: { rarity: Rarity; weight: number }[] = [
+  { rarity: 'rare', weight: 0.50 },
+  { rarity: 'legendary', weight: 0.35 },
+  { rarity: 'mythic', weight: 0.15 },
+];
+
+/** Golden Monster guaranteed drop — always rare or above */
+export function rollGoldenDrop(rng: PRNG): ItemInstance {
+  const roll = rng.next();
+  let cumulative = 0;
+  let rarity: Rarity = 'rare';
+  for (const w of GOLDEN_RARITY_WEIGHTS) {
+    cumulative += w.weight;
+    if (roll < cumulative) {
+      rarity = w.rarity;
+      break;
+    }
+  }
+
+  const def = SWORD_DEFS.find(d => d.rarity === rarity) ?? SWORD_DEFS[2]; // fallback to rare
+  return createItem(def, rarity);
+}
+
 /** Visual representation of a dropped item on the ground */
 export class ItemDropEntity {
   x: number;
