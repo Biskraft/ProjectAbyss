@@ -1,13 +1,11 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, BitmapText } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
-
-const barStyle = new TextStyle({ fontSize: 8, fill: 0xffffff, fontFamily: PIXEL_FONT });
 
 export class HUD {
   container: Container;
   private hpBar: Graphics;
-  private hpText: Text;
-  private floorText: Text;
+  private hpText: BitmapText;
+  private floorText: BitmapText;
 
   constructor() {
     this.container = new Container();
@@ -18,12 +16,12 @@ export class HUD {
     this.hpBar.y = 50; // below minimap area
     this.container.addChild(this.hpBar);
 
-    this.hpText = new Text({ text: '', style: barStyle });
+    this.hpText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff } });
     this.hpText.x = 6;
     this.hpText.y = 50;
     this.container.addChild(this.hpText);
 
-    this.floorText = new Text({ text: '', style: barStyle });
+    this.floorText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff } });
     this.floorText.x = 4;
     this.floorText.y = 62;
     this.container.addChild(this.floorText);

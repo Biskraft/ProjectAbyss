@@ -1,4 +1,4 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, BitmapText } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { TilemapRenderer } from '@level/TilemapRenderer';
 import { generateRoomGrid, type RoomGridData } from '@level/RoomGrid';
@@ -483,32 +483,28 @@ export class ItemWorldScene extends Scene {
     bg.rect(0, 0, panelW, panelH).stroke({ color: 0x4a4a6a, width: 1 });
     panel.addChild(bg);
 
-    const titleStyle = new TextStyle({ fontSize: 8, fill: 0xffffff, fontFamily: PIXEL_FONT });
-    const infoStyle = new TextStyle({ fontSize: 8, fill: 0x88ccff, fontFamily: PIXEL_FONT });
-    const hintStyle = new TextStyle({ fontSize: 8, fill: 0xaaaaaa, fontFamily: PIXEL_FONT });
-
-    const title = new Text({ text: 'Leave Item World?', style: titleStyle });
+    const title = new BitmapText({ text: 'Leave Item World?', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff } });
     title.x = 12;
     title.y = 6;
     panel.addChild(title);
 
-    const expInfo = new Text({
+    const expInfo = new BitmapText({
       text: `${this.item.def.name} Lv${this.item.level}  EXP: ${this.item.exp}/${EXP_PER_LEVEL}`,
-      style: infoStyle,
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x88ccff },
     });
     expInfo.x = 12;
     expInfo.y = 20;
     panel.addChild(expInfo);
 
-    const floorInfo = new Text({
+    const floorInfo = new BitmapText({
       text: `Rooms ${this.roomsCleared}/${this.totalRooms}  Earned: +${this.earnedExp} EXP`,
-      style: hintStyle,
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa },
     });
     floorInfo.x = 12;
     floorInfo.y = 33;
     panel.addChild(floorInfo);
 
-    const controls = new Text({ text: '[Z] Yes   [X/C] No', style: hintStyle });
+    const controls = new BitmapText({ text: '[Z] Yes   [X/C] No', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa } });
     controls.x = 12;
     controls.y = 48;
     panel.addChild(controls);

@@ -1,12 +1,5 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, BitmapText } from 'pixi.js';
 import { PIXEL_FONT } from '@ui/fonts';
-
-const hintStyle = new TextStyle({
-  fontSize: 8,
-  fill: 0xffffff,
-  fontFamily: PIXEL_FONT,
-  dropShadow: { color: 0x000000, blur: 1, distance: 1 },
-});
 
 export class Altar {
   container: Container;
@@ -15,7 +8,7 @@ export class Altar {
   width = 24;
   height = 20;
 
-  private hintText: Text;
+  private hintText: BitmapText;
   private showHint = false;
   private timer = 0;
   private gfx: Graphics;
@@ -33,7 +26,7 @@ export class Altar {
     this.drawAltar();
     this.container.addChild(this.gfx);
 
-    this.hintText = new Text({ text: 'UP: Offer', style: hintStyle });
+    this.hintText = new BitmapText({ text: 'UP: Offer', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff } });
     this.hintText.anchor.set(0.5);
     this.hintText.y = -16;
     this.hintText.visible = false;

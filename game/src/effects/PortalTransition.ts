@@ -1,4 +1,4 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, BitmapText } from 'pixi.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { PIXEL_FONT } from '@ui/fonts';
 import { PORTAL_COLOR, type PortalSourceType } from '@entities/Portal';
@@ -32,19 +32,11 @@ const SHAKE_INTENSITY: Record<Rarity, number> = {
   mythic: 12,
 };
 
-const textStyle = new TextStyle({
-  fontSize: 10,
-  fill: 0xffffff,
-  fontFamily: PIXEL_FONT,
-  align: 'center',
-  dropShadow: { color: 0x000000, blur: 2, distance: 1 },
-});
-
 export class PortalTransition {
   container: Container;
   private flashOverlay: Graphics;
   private fillOverlay: Graphics;
-  private infoText: Text;
+  private infoText: BitmapText;
   private portalGfx: Graphics;
 
   private timer = 0;
@@ -93,7 +85,7 @@ export class PortalTransition {
         ? `${sourceItem.def.name} Lv${sourceItem.level} [${rarity.toUpperCase()}]`
         : `[${rarity.toUpperCase()}]`;
 
-    this.infoText = new Text({ text: label, style: { ...textStyle, fill: this.color } });
+    this.infoText = new BitmapText({ text: label, style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: this.color } });
     this.infoText.anchor.set(0.5);
     this.infoText.x = GAME_WIDTH / 2;
     this.infoText.y = GAME_HEIGHT / 2 - 20;

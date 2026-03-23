@@ -1,4 +1,4 @@
-import { Container, Text, TextStyle } from 'pixi.js';
+import { Container, BitmapText } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
 
 const FLOAT_SPEED = 50; // px/s upward
@@ -6,7 +6,7 @@ const LIFETIME = 900; // ms
 const PUNCH_DURATION = 150; // ms for scale punch
 
 interface DmgEntry {
-  text: Text;
+  text: BitmapText;
   timer: number;
   /** Initial velocity for bounce effect */
   vy: number;
@@ -14,17 +14,6 @@ interface DmgEntry {
   punchTimer: number;
   baseScale: number;
 }
-
-const defaultStyle = new TextStyle({
-  fontSize: 8,
-  fill: 0xffffff,
-  fontFamily: PIXEL_FONT,
-  dropShadow: {
-    color: 0x000000,
-    blur: 1,
-    distance: 1,
-  },
-});
 
 /**
  * Sakurai: Damage numbers should "pop" — scale punch on spawn,
@@ -62,9 +51,9 @@ export class DamageNumberManager {
       punchScale = 1.3;
     }
 
-    const text = new Text({
+    const text = new BitmapText({
       text: `${damage}`,
-      style: { ...defaultStyle, fill: color, fontSize: size },
+      style: { fontFamily: PIXEL_FONT, fontSize: size, fill: color },
     });
     text.anchor.set(0.5);
     text.x = x + (Math.random() - 0.5) * 8;

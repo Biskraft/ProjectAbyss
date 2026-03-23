@@ -1,4 +1,4 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, BitmapText } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { GameAction } from '@core/InputManager';
 import { aabbOverlap } from '@core/Physics';
@@ -218,16 +218,13 @@ export class WorldScene extends Scene {
     bg.rect(0, 0, 480, 270).fill({ color: 0x000000, alpha: 0.7 });
     overlay.addChild(bg);
 
-    const titleStyle = new TextStyle({ fontSize: 12, fill: 0xff4444, fontFamily: PIXEL_FONT });
-    const hintStyle = new TextStyle({ fontSize: 8, fill: 0xaaaaaa, fontFamily: PIXEL_FONT });
-
-    const title = new Text({ text: 'GAME OVER', style: titleStyle });
+    const title = new BitmapText({ text: 'GAME OVER', style: { fontFamily: PIXEL_FONT, fontSize: 12, fill: 0xff4444 } });
     title.anchor.set(0.5);
     title.x = 240;
     title.y = 120;
     overlay.addChild(title);
 
-    const hint = new Text({ text: 'Press Z or X to respawn', style: hintStyle });
+    const hint = new BitmapText({ text: 'Press Z or X to respawn', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa } });
     hint.anchor.set(0.5);
     hint.x = 240;
     hint.y = 150;
@@ -712,20 +709,18 @@ export class WorldScene extends Scene {
     bg.y = py;
     ui.addChild(bg);
 
-    const titleStyle = new TextStyle({ fontSize: 8, fill: 0xaaccff, fontFamily: PIXEL_FONT });
-    const title = new Text({ text: 'Offer item to altar:', style: titleStyle });
+    const title = new BitmapText({ text: 'Offer item to altar:', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaccff } });
     title.x = px + 6;
     title.y = py + 4;
     ui.addChild(title);
 
-    const itemStyle = new TextStyle({ fontSize: 8, fill: 0xffffff, fontFamily: PIXEL_FONT });
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       const selected = i === this.altarSelectIndex;
       const prefix = selected ? '> ' : '  ';
       const equipped = this.inventory.equipped?.uid === item.uid ? ' [E]' : '';
       const label = `${prefix}${item.def.name} Lv${item.level} ${item.rarity.toUpperCase()}${equipped}`;
-      const t = new Text({ text: label, style: { ...itemStyle, fill: selected ? 0xffff44 : 0xffffff } });
+      const t = new BitmapText({ text: label, style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: selected ? 0xffff44 : 0xffffff } });
       t.x = px + 6;
       t.y = py + 16 + i * 12;
       ui.addChild(t);

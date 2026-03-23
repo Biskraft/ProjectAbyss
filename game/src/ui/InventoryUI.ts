@@ -1,4 +1,4 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, BitmapText } from 'pixi.js';
 import { RARITY_COLOR, type ItemInstance } from '@items/ItemInstance';
 import type { Inventory } from '@items/Inventory';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
@@ -14,17 +14,14 @@ const PANEL_H = ROWS * (SLOT_SIZE + SLOT_GAP) + SLOT_GAP + PADDING * 2 + 40; // 
 
 import { PIXEL_FONT } from './fonts';
 
-const textStyle = new TextStyle({ fontSize: 8, fill: 0xffffff, fontFamily: PIXEL_FONT });
-const smallStyle = new TextStyle({ fontSize: 8, fill: 0xcccccc, fontFamily: PIXEL_FONT });
-
 export class InventoryUI {
   container: Container;
   visible = false;
   private inventory: Inventory;
   private slots: Graphics[] = [];
   private selectedIndex = -1;
-  private infoText: Text;
-  private titleText: Text;
+  private infoText: BitmapText;
+  private titleText: BitmapText;
   private panel: Graphics;
 
   constructor(inventory: Inventory) {
@@ -48,7 +45,7 @@ export class InventoryUI {
     this.container.addChild(this.panel);
 
     // Title
-    this.titleText = new Text({ text: 'INVENTORY', style: textStyle });
+    this.titleText = new BitmapText({ text: 'INVENTORY', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff } });
     this.titleText.x = PADDING;
     this.titleText.y = 4;
     this.panel.addChild(this.titleText);
@@ -65,7 +62,7 @@ export class InventoryUI {
     }
 
     // Info text
-    this.infoText = new Text({ text: '', style: smallStyle });
+    this.infoText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xcccccc } });
     this.infoText.x = PADDING;
     this.infoText.y = 16 + ROWS * (SLOT_SIZE + SLOT_GAP) + SLOT_GAP + 4;
     this.panel.addChild(this.infoText);

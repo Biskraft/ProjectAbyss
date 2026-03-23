@@ -1,5 +1,6 @@
 import { Game } from './Game';
 import { WorldScene } from '@scenes/WorldScene';
+import { installBitmapFont } from '@ui/fonts';
 
 function showStatus(msg: string): void {
   const el = document.getElementById('load-status');
@@ -30,6 +31,9 @@ try {
   if (!fontLoaded) {
     console.warn('Press Start 2P font failed to load, using fallback');
   }
+
+  // Install BitmapFont from the now-loaded CSS font
+  installBitmapFont();
 
   showStatus('Initializing game...');
   const game = new Game();

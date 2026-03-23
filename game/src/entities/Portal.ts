@@ -1,4 +1,4 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, BitmapText } from 'pixi.js';
 import { PIXEL_FONT } from '@ui/fonts';
 import type { Rarity } from '@data/weapons';
 import type { ItemInstance } from '@items/ItemInstance';
@@ -64,13 +64,6 @@ interface Particle {
   size: number;
 }
 
-const hintStyle = new TextStyle({
-  fontSize: 8,
-  fill: 0xffffff,
-  fontFamily: PIXEL_FONT,
-  dropShadow: { color: 0x000000, blur: 1, distance: 1 },
-});
-
 export class Portal {
   container: Container;
   x: number;
@@ -83,7 +76,7 @@ export class Portal {
 
   private portalGfx: Graphics;
   private particleGfx: Graphics;
-  private hintText: Text;
+  private hintText: BitmapText;
   private particles: Particle[] = [];
   private timer = 0;
   private baseSize: number;
@@ -116,7 +109,7 @@ export class Portal {
     this.particleGfx = new Graphics();
     this.container.addChild(this.particleGfx);
 
-    this.hintText = new Text({ text: 'UP: Enter', style: hintStyle });
+    this.hintText = new BitmapText({ text: 'UP: Enter', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff } });
     this.hintText.anchor.set(0.5);
     this.hintText.y = -this.baseSize / 2 - 12;
     this.hintText.visible = false;
